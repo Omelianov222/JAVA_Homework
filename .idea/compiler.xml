@@ -9,5 +9,8 @@
         <module name="hello-world" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="omelianov" target="1.8" />
+    </bytecodeTargetLevel>
   </component>
 </project>
