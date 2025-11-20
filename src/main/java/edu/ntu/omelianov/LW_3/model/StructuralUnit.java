@@ -1,4 +1,5 @@
 package edu.ntu.omelianov.LW_3.model;
+import java.util.Objects;
 
 public abstract class StructuralUnit {
     private final String name;
@@ -16,4 +17,18 @@ public abstract class StructuralUnit {
     public Human getHead() {
         return head;
     }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        StructuralUnit that = (StructuralUnit) o;
+        return name.equals(that.name) &&
+                head.equals(that.head);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, head);
+    }
+
 }
