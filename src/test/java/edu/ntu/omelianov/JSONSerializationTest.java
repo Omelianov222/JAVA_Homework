@@ -1,7 +1,8 @@
 package edu.ntu.omelianov;
 
-import edu.ntu.omelianov.LW_4.controller.JSONController;
-import edu.ntu.omelianov.LW_4.model.*;
+import edu.ntu.omelianov.LW_3.model.*;
+import edu.ntu.omelianov.LW_3.controller.*;
+import edu.ntu.omelianov.LW_4.JSONController;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -24,23 +25,23 @@ public class JSONSerializationTest {
     }
 
     private University buildUniversity() {
-        Human rector = new Human("Іван", "Петренко", "Миколайович", Sex.MALE);
-        University university = new University("Тестовий Університет", rector);
+        Human rector = new Human("John", "Smith", "A", Sex.MALE);
+        University university = new University("Test University", rector);
 
         for (int i = 1; i <= 2; i++) {
-            Faculty faculty = new Faculty("Факультет " + i,
-                    new Human("Декан", "Ф" + i, "П", Sex.MALE));
+            Faculty faculty = new Faculty("Faculty " + i,
+                    new Human("Dean", "F" + i, "A", Sex.MALE));
 
             for (int j = 1; j <= 2; j++) {
-                Department department = new Department("Кафедра " + i + "." + j,
-                        new Human("Завідувач", "К" + i + j, "П", Sex.FEMALE));
+                Department department = new Department("Department " + i + "." + j,
+                        new Human("Head", "D" + i + j, "A", Sex.FEMALE));
 
                 for (int g = 1; g <= 2; g++) {
-                    Group group = new Group("Група " + i + "." + j + "." + g,
-                            new Human("Куратор", "Г" + i + j + g, "П", Sex.FEMALE));
+                    Group group = new Group("Group " + i + "." + j + "." + g,
+                            new Human("Curator", "G" + i + j + g, "A", Sex.FEMALE));
 
-                    group.addStudent(new Student("Студент", "S" + g + "1", "П", Sex.MALE, "ID" + i + j + g + "1"));
-                    group.addStudent(new Student("Студент", "S" + g + "2", "П", Sex.FEMALE, "ID" + i + j + g + "2"));
+                    group.addStudent(new Student("Student", "S" + g + "1", "A", Sex.MALE, "ID" + i + j + g + "1"));
+                    group.addStudent(new Student("Student", "S" + g + "2", "A", Sex.FEMALE, "ID" + i + j + g + "2"));
 
                     department.addGroup(group);
                 }
