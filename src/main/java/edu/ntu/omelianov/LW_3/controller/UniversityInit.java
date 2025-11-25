@@ -83,8 +83,8 @@ public class UniversityInit {
         GroupCreatorImpl impl = (GroupCreatorImpl) groupCreator;
         StudentCreator studentCreator = impl.getStudentCreator();
 
-        group.addStudent(studentCreator.createStudent("Tom", "Walker", "E", Sex.MALE, "ST2024001"));
-        group.addStudent(studentCreator.createStudent("Emma", "Clark", "F", Sex.FEMALE, "ST2024002"));
-        group.addStudent(studentCreator.createStudent("David", "Lewis", "G", Sex.MALE, "ST2024003"));
+        group.addStudent(studentCreator.createStudent("Tom", "Walker", "E", Sex.MALE, "ST2024001", "2005-03-22"));
+        group.addStudent(studentCreator.createStudent("Emma", "Clark", "F", Sex.FEMALE, "ST2024002", "2005-05-22"));
+        group.addStudent(studentCreator.createStudent("David", "Lewis", "G", Sex.MALE, "ST2024003", "2005-04-22"));
     }
 }
