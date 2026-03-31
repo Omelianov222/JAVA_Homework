@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="uk" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>CineBase — Movie Database</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --bg: #090c12;
+            --surface: #111520;
+            --surface2: #181e2e;
+            --border: rgba(255,255,255,0.07);
+            --accent: #e8c84a;
+            --accent2: #e05c3a;
+            --text: #e8e8f0;
+            --muted: #7a7f94;
+            --success: #3de08a;
+            --danger: #e03a3a;
+            --card-hover: #1c2338;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 300;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Noise overlay ── */
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+            opacity: 0.025;
+            pointer-events: none;
+        }
+
+        /* ── Header ── */
+        header {
+            position: relative; z-index: 10;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1.5rem 3rem;
+            border-bottom: 1px solid var(--border);
+            background: rgba(9,12,18,0.9);
+            backdrop-filter: blur(12px);
+        }
+
+        .logo {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 2.2rem;
+            letter-spacing: 0.15em;
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .logo span { color: var(--accent2); }
+
+        nav { display: flex; gap: 0.5rem; }
+
+        nav button {
+            background: none; border: 1px solid var(--border);
+            color: var(--muted); padding: 0.45rem 1.1rem;
+            border-radius: 999px; font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
+        }
+        nav button:hover, nav button.active {
+            background: var(--accent); color: var(--bg);
+            border-color: var(--accent); font-weight: 500;
+        }
+
+        /* ── Layout ── */
+        main {
+            position: relative; z-index: 1;
+            max-width: 1400px; margin: 0 auto;
+            padding: 2.5rem 2rem 4rem;
+        }
+
+        /* ── Panels ── */
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* ── Fetch Section ── */
+        .section-title {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.8rem; letter-spacing: 0.1em;
+            color: var(--text); margin-bottom: 0.3rem;
+        }
+        .section-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+
+        .fetch-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        @media (max-width: 700px) { .fetch-grid { grid-template-columns: 1fr; } }
+
+        .fetch-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .fetch-card:hover { border-color: rgba(232,200,74,0.3); transform: translateY(-2px); }
+
+        .fetch-card h3 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.3rem; letter-spacing: 0.1em;
+            color: var(--accent); margin-bottom: 0.5rem;
+        }
+
+        .fetch-card p { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.4rem; line-height: 1.6; }
+
+        .input-group { display: flex; gap: 0.6rem; margin-bottom: 1rem; }
+
+        .input-group input {
+            flex: 1; background: var(--surface2);
+            border: 1px solid var(--border); border-radius: 10px;
+            color: var(--text); padding: 0.65rem 1rem;
+            font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+            outline: none; transition: border-color 0.2s;
+        }
+        .input-group input:focus { border-color: var(--accent); }
+
+        .btn {
+            padding: 0.65rem 1.4rem; border-radius: 10px; border: none;
+            font-family: 'DM Sans', sans-serif; font-weight: 500;
+            font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-accent { background: var(--accent); color: var(--bg); }
+        .btn-accent:hover { background: #f5d860; }
+        .btn-accent:disabled { background: var(--surface2); color: var(--muted); cursor: not-allowed; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:hover { background: #f04444; }
+        .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ── Status toast ── */
+        #toast {
+            position: fixed; bottom: 2rem; right: 2rem; z-index: 9999;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 12px; padding: 1rem 1.5rem;
+            font-size: 0.9rem; max-width: 360px;
+            transform: translateY(120%); opacity: 0;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+        }
+        #toast.show { transform: translateY(0); opacity: 1; }
+        #toast.success { border-color: var(--success); color: var(--success); }
+        #toast.error { border-color: var(--danger); color: var(--danger); }
+
+        /* ── Spinner ── */
+        .spinner {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%; animation: spin 0.7s linear infinite;
+            vertical-align: middle; margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Movies Grid ── */
+        .toolbar {
+            display: flex; align-items: center; gap: 1rem;
+            margin-bottom: 2rem; flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1; min-width: 200px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 10px; color: var(--text);
+            padding: 0.65rem 1rem; font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+        }
+        .search-box:focus { border-color: var(--accent); }
+        .search-box::placeholder { color: var(--muted); }
+
+        .count-badge {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 999px; padding: 0.35rem 1rem;
+            font-size: 0.8rem; color: var(--muted); white-space: nowrap;
+        }
+        .count-badge strong { color: var(--accent); }
+
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.2rem;
+        }
+
+        .movie-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px; overflow: hidden;
+            cursor: pointer; transition: all 0.25s;
+            animation: fadeUp 0.4s ease both;
+        }
+        .movie-card:hover {
+            border-color: rgba(232,200,74,0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .movie-poster {
+            width: 100%; aspect-ratio: 2/3; object-fit: cover;
+            background: var(--surface2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem; color: var(--border);
+        }
+        .movie-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        .movie-info { padding: 0.9rem; }
+
+        .movie-title {
+            font-weight: 500; font-size: 0.9rem;
+            line-height: 1.35; margin-bottom: 0.3rem;
+            display: -webkit-box; -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+
+        .movie-meta { color: var(--muted); font-size: 0.78rem; }
+
+        .movie-genres { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+        .genre-tag {
+            background: rgba(232,200,74,0.1); color: var(--accent);
+            border: 1px solid rgba(232,200,74,0.25);
+            border-radius: 999px; padding: 0.15rem 0.6rem;
+            font-size: 0.7rem;
+        }
+
+        .empty-state {
+            text-align: center; padding: 5rem 2rem;
+            color: var(--muted);
+        }
+        .empty-state .icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.3; }
+        .empty-state h3 { font-family: 'Bebas Neue', cursive; font-size: 1.6rem; letter-spacing: 0.1em; color: var(--text); margin-bottom: 0.5rem; }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            display: none; align-items: center; justify-content: center;
+            padding: 2rem;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 20px; max-width: 600px; width: 100%;
+            max-height: 85vh; overflow-y: auto;
+            animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-header {
+            display: flex; align-items: flex-start; gap: 1.5rem;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-poster {
+            width: 90px; flex-shrink: 0; aspect-ratio: 2/3;
+            border-radius: 10px; overflow: hidden;
+            background: var(--surface2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; color: var(--border);
+        }
+        .modal-poster img { width: 100%; height: 100%; object-fit: cover; }
+
+        .modal-meta h2 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.6rem; letter-spacing: 0.08em;
+            line-height: 1.2; margin-bottom: 0.4rem;
+        }
+        .modal-meta .year { color: var(--accent); font-size: 0.9rem; font-weight: 500; }
+        .modal-meta .director { color: var(--muted); font-size: 0.85rem; margin-top: 0.3rem; }
+
+        .modal-body { padding: 1.5rem; }
+        .modal-body p { color: var(--muted); line-height: 1.7; font-size: 0.88rem; margin-bottom: 1.2rem; }
+
+        .modal-section-title { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.6rem; }
+
+        .actors-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.2rem; }
+        .actor-chip {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 999px; padding: 0.25rem 0.8rem;
+            font-size: 0.78rem; color: var(--text);
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex; gap: 0.6rem; justify-content: flex-end;
+        }
+
+        /* ── Add Movie Form ── */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        @media (max-width: 500px) { .form-grid { grid-template-columns: 1fr; } }
+
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .form-group.full { grid-column: 1 / -1; }
+
+        label { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+        .form-input, .form-textarea {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 10px; color: var(--text);
+            padding: 0.65rem 1rem; font-family: 'DM Sans', sans-serif;
+            font-size: 0.88rem; outline: none; transition: border-color 0.2s;
+        }
+        .form-input:focus, .form-textarea:focus { border-color: var(--accent); }
+        .form-textarea { resize: vertical; min-height: 90px; }
+        .form-hint { font-size: 0.72rem; color: var(--muted); }
+
+        /* ── Selector inputs ── */
+        .sel-label {
+            font-size: 0.7rem; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem;
+        }
+        .sel-input {
+            width: 100%;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 8px; color: var(--text);
+            padding: 0.55rem 0.85rem;
+            font-family: 'Courier New', monospace; font-size: 0.8rem;
+            outline: none; transition: border-color 0.2s;
+        }
+        .sel-input:focus { border-color: var(--accent); }
+        .sel-input::placeholder { color: var(--muted); font-style: italic; }
+
+        /* ── Preview table ── */
+        .preview-table { width: 100%; border-collapse: collapse; }
+        .preview-table th {
+            background: var(--surface2); color: var(--muted);
+            font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
+            padding: 0.6rem 1rem; text-align: left; font-weight: 400;
+        }
+        .preview-table td {
+            padding: 0.65rem 1rem; border-top: 1px solid var(--border);
+            font-size: 0.82rem; color: var(--text);
+            max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .preview-table tr:hover td { background: var(--surface2); }
+        .tag-found { color: var(--success); font-size: 0.72rem; }
+        .tag-miss  { color: var(--danger);  font-size: 0.72rem; }
+
+        /* ── Parse result cards ── */
+        .parse-card {
+            background: var(--surface2);
+            border: 2px solid var(--border);
+            border-radius: 12px; overflow: hidden;
+            cursor: pointer; transition: all 0.18s;
+            position: relative;
+        }
+        .parse-card:hover { border-color: rgba(232,200,74,0.35); }
+        .parse-card.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+        .parse-card.selected .parse-check {
+            background: var(--accent); border-color: var(--accent); color: var(--bg);
+        }
+        .parse-check {
+            position: absolute; top: 0.5rem; right: 0.5rem;
+            width: 22px; height: 22px; border-radius: 50%;
+            border: 2px solid var(--border);
+            background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; font-weight: 700;
+            transition: all 0.15s; z-index: 2;
+        }
+        .parse-poster {
+            width: 100%; aspect-ratio: 2/3; object-fit: cover;
+            background: var(--surface); display: flex;
+            align-items: center; justify-content: center;
+            font-size: 2.5rem; color: var(--border);
+        }
+        .parse-poster img { width:100%; height:100%; object-fit:cover; display:block; }
+        .parse-info { padding: 0.65rem 0.7rem; }
+        .parse-title {
+            font-size: 0.82rem; font-weight: 500;
+            line-height: 1.3; margin-bottom: 0.25rem;
+            display: -webkit-box; -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .parse-meta { font-size: 0.72rem; color: var(--muted); }
+    </style>
+</head>
+<body>
+
+<header>
+    <a class="logo" href="#">Cine<span>Base</span></a>
+    <nav>
+        <button class="active" onclick="showPanel('movies')">🎬 Фільми</button>
+        <button onclick="showPanel('fetch')">⬇ Імпорт</button>
+        <button onclick="showPanel('add')">＋ Додати</button>
+    </nav>
+</header>
+
+<main>
+
+    <!-- ═══════════════ MOVIES PANEL ═══════════════ -->
+    <div class="panel active" id="panel-movies">
+        <div class="section-title">Каталог фільмів</div>
+        <p class="section-sub">Всі збережені фільми з бази даних</p>
+
+        <div class="toolbar">
+            <input class="search-box" type="text" id="searchInput" placeholder="Пошук за назвою, жанром, актором..." oninput="filterMovies()"/>
+            <div class="count-badge">Знайдено: <strong id="movieCount">0</strong></div>
+            <button class="btn btn-ghost" onclick="loadMovies()">↻ Оновити</button>
+        </div>
+
+        <div class="movies-grid" id="moviesGrid">
+            <div class="empty-state" style="grid-column:1/-1">
+                <div class="icon">🎞</div>
+                <h3>Завантаження...</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ FETCH PANEL ═══════════════ -->
+    <div class="panel" id="panel-fetch">
+        <div class="section-title">Імпорт даних</div>
+        <p class="section-sub">Завантажте фільми з зовнішніх джерел та збережіть до бази</p>
+
+        <div class="fetch-grid">
+            <!-- ── API card ── -->
+            <div class="fetch-card">
+                <h3>📡 API — Simkl Trending</h3>
+                <p>Отримати трендові фільми з публічного API Simkl. JSON-відповідь виводиться у логи сервера.</p>
+                <button class="btn btn-accent" id="btnFetchApi" onclick="fetchApi()">
+                    Завантажити з API
+                </button>
+                <div id="apiStatus" style="margin-top:0.8rem; font-size:0.82rem; color:var(--muted);"></div>
+            </div>
+
+            <!-- ── HTML Parser card ── -->
+            <div class="fetch-card">
+                <h3>🌐 HTML — Парсинг сторінки</h3>
+                <p>Вставте посилання на будь-яку сторінку з фільмами. Сервер завантажить HTML та знайде фільми за CSS-селекторами.</p>
+
+                <div style="display:flex; gap:0.6rem; margin-bottom:0.9rem;">
+                    <input type="text" id="htmlUrl"
+                           placeholder="https://example.com/movies"
+                           style="flex:1; background:var(--surface2); border:1px solid var(--border);
+                               border-radius:10px; color:var(--text); padding:0.65rem 1rem;
+                               font-family:'DM Sans',sans-serif; font-size:0.88rem; outline:none;
+                               transition:border-color 0.2s;"
+                           onfocus="this.style.borderColor='var(--accent)'"
+                           onblur="this.style.borderColor='var(--border)'"
+                           onkeydown="if(event.key==='Enter') openParseModal()"/>
+                    <button class="btn btn-accent" onclick="openParseModal()">Аналізувати →</button>
+                </div>
+
+                <!-- Collapsible selectors -->
+                <div>
+                    <button class="btn btn-ghost" onclick="toggleSelectors()" id="btnToggleSel"
+                            style="font-size:0.78rem; padding:0.4rem 0.8rem; margin-bottom:0.7rem;">
+                        ⚙ CSS-селектори (дефолт)
+                    </button>
+                    <div id="selectors-panel" style="display:none;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem 1rem; margin-bottom:0.8rem;">
+                            <div>
+                                <div class="sel-label">Контейнер</div>
+                                <input class="sel-input" id="sel-container" placeholder="div.movie"/>
+                            </div>
+                            <div>
+                                <div class="sel-label">Назва</div>
+                                <input class="sel-input" id="sel-title" placeholder="h2.title"/>
+                            </div>
+                            <div>
+                                <div class="sel-label">Рік</div>
+                                <input class="sel-input" id="sel-year" placeholder="span.year"/>
+                            </div>
+                            <div>
+                                <div class="sel-label">Режисер</div>
+                                <input class="sel-input" id="sel-director" placeholder="span.director"/>
+                            </div>
+                            <div>
+                                <div class="sel-label">Опис</div>
+                                <input class="sel-input" id="sel-overview" placeholder="p.overview"/>
+                            </div>
+                            <div>
+                                <div class="sel-label">Постер (img src)</div>
+                                <input class="sel-input" id="sel-poster" placeholder="img.poster"/>
+                            </div>
+                        </div>
+                        <button class="btn btn-ghost" onclick="resetSelectors()" style="font-size:0.75rem; padding:0.35rem 0.75rem;">↺ Скинути</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fetch Result Log -->
+        <div id="fetchLog" style="display:none; margin-top:1.5rem;">
+            <div style="font-family:'Bebas Neue',cursive; font-size:1.2rem; letter-spacing:0.1em;
+                        color:var(--text); margin-bottom:0.8rem;">
+                📋 Журнал імпорту
+            </div>
+            <div id="fetchLogContent" style="
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 1.2rem 1.5rem;
+                font-size: 0.82rem;
+                color: var(--muted);
+                line-height: 1.8;
+                font-family: 'Courier New', monospace;
+                max-height: 260px; overflow-y: auto;
+            "></div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ ADD PANEL ═══════════════ -->
+    <div class="panel" id="panel-add">
+        <div class="section-title">Додати фільм</div>
+        <p class="section-sub">Вручну внести новий фільм до бази даних</p>
+
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2rem; max-width:680px;">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Назва фільму *</label>
+                    <input class="form-input" id="f-title" type="text" placeholder="Наприклад: Inception"/>
+                </div>
+                <div class="form-group">
+                    <label>Рік</label>
+                    <input class="form-input" id="f-year" type="text" placeholder="2010"/>
+                </div>
+                <div class="form-group">
+                    <label>Режисер</label>
+                    <input class="form-input" id="f-director" type="text" placeholder="Christopher Nolan"/>
+                </div>
+                <div class="form-group full">
+                    <label>URL постера</label>
+                    <input class="form-input" id="f-poster" type="text" placeholder="https://..."/>
+                </div>
+                <div class="form-group full">
+                    <label>Опис</label>
+                    <textarea class="form-textarea" id="f-overview" placeholder="Короткий опис сюжету..."></textarea>
+                </div>
+                <div class="form-group full">
+                    <label>Жанри</label>
+                    <input class="form-input" id="f-genres" type="text" placeholder="Action, Drama, Thriller"/>
+                    <span class="form-hint">Розділяйте комою</span>
+                </div>
+                <div class="form-group full">
+                    <label>Актори</label>
+                    <input class="form-input" id="f-actors" type="text" placeholder="Leonardo DiCaprio, Joseph Gordon-Levitt"/>
+                    <span class="form-hint">Розділяйте комою</span>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:0.8rem;">
+                <button class="btn btn-accent" onclick="addMovie()">Зберегти фільм</button>
+                <button class="btn btn-ghost" onclick="clearForm()">Очистити</button>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- ═══ Movie Detail Modal ═══ -->
+<div class="modal-overlay" id="movieModal" onclick="closeModal(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-poster" id="modalPoster">🎬</div>
+            <div class="modal-meta">
+                <h2 id="modalTitle">—</h2>
+                <div class="year" id="modalYear"></div>
+                <div class="director" id="modalDirector"></div>
+                <div class="movie-genres" id="modalGenres" style="margin-top:0.6rem;"></div>
+            </div>
+        </div>
+        <div class="modal-body">
+            <p id="modalOverview" style="display:none"></p>
+            <div class="modal-section-title" id="actorLabel" style="display:none">Актори</div>
+            <div class="actors-list" id="modalActors"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-danger" id="modalDeleteBtn" onclick="deleteFromModal()">🗑 Видалити</button>
+            <button class="btn btn-ghost" onclick="closeModalDirect()">Закрити</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ HTML Parse Modal ═══ -->
+<div class="modal-overlay" id="parseModal" onclick="closeParseModalOverlay(event)">
+    <div class="modal" style="max-width:860px; width:100%;">
+
+        <!-- Header -->
+        <div style="display:flex; align-items:center; justify-content:space-between;
+                    padding:1.2rem 1.5rem; border-bottom:1px solid var(--border);">
+            <div>
+                <div style="font-family:'Bebas Neue',cursive; font-size:1.4rem;
+                            letter-spacing:0.1em; color:var(--text);">
+                    🌐 Результати парсингу
+                </div>
+                <div id="parseModalUrl" style="font-size:0.78rem; color:var(--muted);
+                     margin-top:0.2rem; word-break:break-all;"></div>
+            </div>
+            <button onclick="closeParseModal()"
+                    style="background:none; border:1px solid var(--border); color:var(--muted);
+                       border-radius:8px; padding:0.4rem 0.8rem; cursor:pointer; font-size:0.85rem;
+                       transition:all 0.15s;"
+                    onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+                    onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+                ✕
+            </button>
+        </div>
+
+        <!-- Loading state -->
+        <div id="parseLoading" style="padding:4rem 2rem; text-align:center; color:var(--muted);">
+            <div style="display:inline-block; width:32px; height:32px;
+                        border:3px solid rgba(255,255,255,0.08);
+                        border-top-color:var(--accent);
+                        border-radius:50%; animation:spin 0.8s linear infinite;
+                        margin-bottom:1rem;"></div>
+            <div style="font-size:0.9rem;">Сервер завантажує та аналізує сторінку...</div>
+            <div id="parseLoadingUrl" style="font-size:0.78rem; margin-top:0.4rem; color:var(--muted); word-break:break-all;"></div>
+        </div>
+
+        <!-- Error state -->
+        <div id="parseError" style="display:none; padding:3rem 2rem; text-align:center;">
+            <div style="font-size:2.5rem; margin-bottom:1rem;">⚠</div>
+            <div style="color:var(--danger); font-size:0.95rem; margin-bottom:0.5rem;" id="parseErrorMsg"></div>
+            <div style="color:var(--muted); font-size:0.82rem;">Перевірте URL та CSS-селектори</div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="parseEmpty" style="display:none; padding:3rem 2rem; text-align:center;">
+            <div style="font-size:2.5rem; margin-bottom:1rem; opacity:0.4;">🔍</div>
+            <div style="font-family:'Bebas Neue',cursive; font-size:1.3rem; letter-spacing:0.1em; color:var(--text); margin-bottom:0.4rem;">Нічого не знайдено</div>
+            <div style="color:var(--muted); font-size:0.85rem;">Спробуйте змінити CSS-селектори під структуру цього сайту</div>
+        </div>
+
+        <!-- Results -->
+        <div id="parseResults" style="display:none;">
+            <!-- Toolbar -->
+            <div style="display:flex; align-items:center; justify-content:space-between;
+                        padding:0.9rem 1.5rem; border-bottom:1px solid var(--border);
+                        flex-wrap:wrap; gap:0.6rem;">
+                <div style="font-size:0.85rem; color:var(--muted);">
+                    Знайдено <strong id="parseCount" style="color:var(--accent)">0</strong> фільм(ів)
+                    — виберіть які зберегти
+                </div>
+                <div style="display:flex; gap:0.5rem;">
+                    <button class="btn btn-ghost" onclick="selectAllParsed(true)"
+                            style="font-size:0.78rem; padding:0.35rem 0.8rem;">✓ Всі</button>
+                    <button class="btn btn-ghost" onclick="selectAllParsed(false)"
+                            style="font-size:0.78rem; padding:0.35rem 0.8rem;">✗ Жодного</button>
+                </div>
+            </div>
+
+            <!-- Cards grid -->
+            <div id="parseCardsGrid" style="
+                display:grid;
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                gap:1rem;
+                padding:1.2rem 1.5rem;
+                max-height:50vh;
+                overflow-y:auto;
+            "></div>
+        </div>
+
+        <!-- Footer -->
+        <div id="parseFooter" style="display:none;
+                padding:1rem 1.5rem; border-top:1px solid var(--border);
+                display:none; align-items:center; justify-content:space-between; gap:1rem;">
+            <div style="font-size:0.82rem; color:var(--muted);">
+                Вибрано: <strong id="parseSelectedCount" style="color:var(--accent)">0</strong>
+            </div>
+            <div style="display:flex; gap:0.7rem;">
+                <button class="btn btn-ghost" onclick="closeParseModal()">Скасувати</button>
+                <button class="btn btn-accent" id="btnSaveParsed" onclick="saveParsedMovies()">
+                    💾 Зберегти вибрані
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Toast ═══ -->
+<div id="toast"></div>
+
+<script>
+    let allMovies = [];
+    let currentModalId = null;
+
+    // ── Panel routing ────────────────────────────────────────────
+    function showPanel(name) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('panel-' + name).classList.add('active');
+        const idx = ['movies','fetch','add'].indexOf(name);
+        document.querySelectorAll('nav button')[idx]?.classList.add('active');
+        if (name === 'movies') loadMovies();
+    }
+
+    // ── Toast ────────────────────────────────────────────────────
+    function showToast(msg, type='success') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'show ' + type;
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.className = '', 3200);
+    }
+
+    // ── Log ─────────────────────────────────────────────────────
+    function appendLog(msg, color='var(--muted)') {
+        const log = document.getElementById('fetchLog');
+        const content = document.getElementById('fetchLogContent');
+        log.style.display = 'block';
+        const time = new Date().toLocaleTimeString('uk-UA');
+        content.innerHTML += `<span style="color:${color}">[${time}] ${msg}</span>\n`;
+        content.scrollTop = content.scrollHeight;
+    }
+
+    // ── Fetch from API ───────────────────────────────────────────
+    function fetchApi() {
+        const btn = document.getElementById('btnFetchApi');
+        const status = document.getElementById('apiStatus');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Завантаження...';
+        status.textContent = 'Підключення до Simkl API...';
+        appendLog('Запит до Simkl trending API...', 'var(--accent)');
+
+        fetch('/api/fetch/api')
+            .then(r => r.text())
+            .then(msg => {
+                appendLog('✔ ' + msg, 'var(--success)');
+                status.style.color = 'var(--success)';
+                status.textContent = '✔ ' + msg;
+                showToast('Фільми з API успішно завантажено!', 'success');
+            })
+            .catch(err => {
+                appendLog('✘ Помилка: ' + err, 'var(--danger)');
+                status.style.color = 'var(--danger)';
+                status.textContent = '✘ Помилка: ' + err.message;
+                showToast('Помилка при завантаженні з API', 'error');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = 'Завантажити з API';
+            });
+    }
+
+    // ── Selectors & parse modal ──────────────────────────────────
+    function getSelectors() {
+        return {
+            container: document.getElementById('sel-container').value.trim(),
+            title:     document.getElementById('sel-title').value.trim(),
+            overview:  document.getElementById('sel-overview').value.trim(),
+            director:  document.getElementById('sel-director').value.trim(),
+            poster:    document.getElementById('sel-poster').value.trim(),
+            year:      document.getElementById('sel-year').value.trim(),
+        };
+    }
+
+    function buildSelParams(s) {
+        return Object.entries(s).filter(([,v])=>v)
+            .map(([k,v])=>`${k}=${encodeURIComponent(v)}`).join('&');
+    }
+
+    function toggleSelectors() {
+        const p = document.getElementById('selectors-panel');
+        const btn = document.getElementById('btnToggleSel');
+        const open = p.style.display === 'none';
+        p.style.display = open ? 'block' : 'none';
+        btn.textContent = open ? '⚙ CSS-селектори (налаштовано)' : '⚙ CSS-селектори (дефолт)';
+    }
+
+    function resetSelectors() {
+        ['sel-container','sel-title','sel-overview','sel-director','sel-poster','sel-year']
+            .forEach(id => document.getElementById(id).value = '');
+        const btn = document.getElementById('btnToggleSel');
+        if (btn) btn.textContent = '⚙ CSS-селектори (дефолт)';
+        showToast('Селектори скинуто', 'success');
+    }
+
+    // parse modal state
+    let parsedItems = [];
+    let selectedIdxs = new Set();
+
+    function openParseModal() {
+        const url = document.getElementById('htmlUrl').value.trim();
+        if (!url) { showToast('Введіть URL сторінки', 'error'); return; }
+
+        parsedItems = [];
+        selectedIdxs.clear();
+
+        ['parseLoading'].forEach(id => document.getElementById(id).style.display = 'block');
+        ['parseError','parseEmpty','parseResults'].forEach(id => document.getElementById(id).style.display = 'none');
+        document.getElementById('parseFooter').style.display = 'none';
+        document.getElementById('parseModalUrl').textContent   = url;
+        document.getElementById('parseLoadingUrl').textContent = url;
+        document.getElementById('parseModal').classList.add('open');
+
+        const s = getSelectors();
+        const params = buildSelParams({
+            container: s.container || 'div.movie',
+            title:     s.title     || 'h2.title',
+            overview:  s.overview  || 'p.overview',
+            director:  s.director  || 'span.director',
+            poster:    s.poster    || 'img.poster',
+            year:      s.year      || 'span.year',
+        });
+
+        appendLog(`▶ Аналіз: ${url}`, 'var(--accent)');
+
+        fetch(`/api/fetch/html/preview?url=${encodeURIComponent(url)}&${params}`)
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(items => {
+                document.getElementById('parseLoading').style.display = 'none';
+                parsedItems = items;
+                if (!items.length) {
+                    document.getElementById('parseEmpty').style.display = 'block';
+                    appendLog('  ⚠ Нічого не знайдено', 'var(--danger)');
+                    return;
+                }
+                appendLog(`  ✔ Знайдено ${items.length} фільм(ів)`, 'var(--success)');
+                renderParseCards(items);
+                document.getElementById('parseCount').textContent = items.length;
+                document.getElementById('parseResults').style.display = 'block';
+                document.getElementById('parseFooter').style.display  = 'flex';
+                selectAllParsed(true);
+            })
+            .catch(err => {
+                document.getElementById('parseLoading').style.display = 'none';
+                document.getElementById('parseError').style.display   = 'block';
+                document.getElementById('parseErrorMsg').textContent  = err.message;
+                appendLog(`  ✘ ${err.message}`, 'var(--danger)');
+            });
+    }
+
+    function renderParseCards(items) {
+        document.getElementById('parseCardsGrid').innerHTML = items.map((m, i) => `
+            <div class="parse-card selected" id="pcard-${i}" onclick="toggleParseCard(${i})">
+                <div class="parse-check" id="pcheck-${i}">✓</div>
+                <div class="parse-poster">
+                    ${m.posterUrl
+                        ? `<img src="${escHtml(m.posterUrl)}" loading="lazy" onerror="this.parentElement.innerHTML='🎬'">`
+                        : '🎬'}
+                </div>
+                <div class="parse-info">
+                    <div class="parse-title">${escHtml(m.title || '—')}</div>
+                    <div class="parse-meta">${[m.year, m.director].filter(Boolean).map(escHtml).join(' · ') || '&nbsp;'}</div>
+                </div>
+            </div>`).join('');
+    }
+
+    function toggleParseCard(i) {
+        const card  = document.getElementById(`pcard-${i}`);
+        const check = document.getElementById(`pcheck-${i}`);
+        if (selectedIdxs.has(i)) {
+            selectedIdxs.delete(i);
+            card?.classList.remove('selected');
+            if (check) check.textContent = '';
+        } else {
+            selectedIdxs.add(i);
+            card?.classList.add('selected');
+            if (check) check.textContent = '✓';
+        }
+        document.getElementById('parseSelectedCount').textContent = selectedIdxs.size;
+    }
+
+    function selectAllParsed(val) {
+        parsedItems.forEach((_, i) => {
+            const card  = document.getElementById(`pcard-${i}`);
+            const check = document.getElementById(`pcheck-${i}`);
+            if (val) { selectedIdxs.add(i); card?.classList.add('selected'); if(check) check.textContent='✓'; }
+            else     { selectedIdxs.delete(i); card?.classList.remove('selected'); if(check) check.textContent=''; }
+        });
+        document.getElementById('parseSelectedCount').textContent = selectedIdxs.size;
+    }
+
+    async function saveParsedMovies() {
+        if (!selectedIdxs.size) { showToast('Виберіть хоча б один фільм', 'error'); return; }
+        const btn = document.getElementById('btnSaveParsed');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Збереження...';
+
+        let saved = 0, failed = 0;
+        for (const i of selectedIdxs) {
+            try {
+                const r = await fetch('/api/movies', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(parsedItems[i])
+                });
+                if (r.ok) saved++; else failed++;
+            } catch { failed++; }
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = '💾 Зберегти вибрані';
+        appendLog(`  💾 Збережено ${saved}${failed ? `, помилок: ${failed}` : ''}`, 'var(--success)');
+        showToast(`Збережено ${saved} фільм(ів)!`, 'success');
+        closeParseModal();
+        if (saved > 0) loadMovies();
+    }
+
+    function closeParseModal() { document.getElementById('parseModal').classList.remove('open'); }
+    function closeParseModalOverlay(e) { if (e.target === document.getElementById('parseModal')) closeParseModal(); }
+
+    // ── Load movies ──────────────────────────────────────────────
+    function loadMovies() {
+        fetch('/api/movies')
+            .then(r => r.json())
+            .then(movies => {
+                allMovies = movies;
+                renderMovies(movies);
+            })
+            .catch(() => {
+                document.getElementById('moviesGrid').innerHTML = `
+                    <div class="empty-state" style="grid-column:1/-1">
+                        <div class="icon">⚠</div>
+                        <h3>Помилка підключення</h3>
+                        <p>Не вдалося завантажити фільми з сервера</p>
+                    </div>`;
+            });
+    }
+
+    function filterMovies() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allMovies.filter(m =>
+            (m.title||'').toLowerCase().includes(q) ||
+            (m.director||'').toLowerCase().includes(q) ||
+            (m.genres||[]).some(g => g.toLowerCase().includes(q)) ||
+            (m.actors||[]).some(a => a.toLowerCase().includes(q))
+        );
+        renderMovies(filtered);
+    }
+
+    function renderMovies(movies) {
+    const grid = document.getElementById('moviesGrid');
+    document.getElementById('movieCount').textContent = movies.length;
+
+    if (!movies.length) {
+        grid.innerHTML = `
+            <div class="empty-state" style="grid-column:1/-1">
+                <div class="icon">🎞</div>
+                <h3>Фільмів не знайдено</h3>
+                <p>Спробуйте змінити запит або імпортуйте дані</p>
+            </div>`;
+        return;
+    }
+
+    grid.innerHTML = movies.map((m, i) => {
+        // вибираємо постер: спочатку posterUrl, потім fanart, інакше 🎬
+        const imgSrc = m.posterUrl || m.fanartUrl || '';
+        const posterHtml = imgSrc
+            ? `<img src="${escHtml(imgSrc)}" alt="${escHtml(m.title||'Без назви')}" loading="lazy"
+                  onerror="this.parentElement.innerHTML='🎬'"/>`
+            : '🎬';
+
+        return `
+            <div class="movie-card" style="animation-delay:${i * 0.03}s" onclick="openModal(${m.id})">
+                <div class="movie-poster">${posterHtml}</div>
+                <div class="movie-info">
+                    <div class="movie-title">${escHtml(m.title||'Без назви')}</div>
+                    <div class="movie-meta">
+                        ${m.year ? `<span>${escHtml(m.year)}</span>` : ''}
+                        ${m.director ? ` · <span>${escHtml(m.director)}</span>` : ''}
+                    </div>
+                    <div class="movie-genres">
+                        ${(m.genres||[]).slice(0,3).map(g => `<span class="genre-tag">${escHtml(g)}</span>`).join('')}
+                    </div>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+    // ── Modal ────────────────────────────────────────────────────
+    function openModal(id) {
+        const m = allMovies.find(x => x.id === id);
+        if (!m) return;
+        currentModalId = id;
+
+        document.getElementById('modalTitle').textContent = m.title || 'Без назви';
+        document.getElementById('modalYear').textContent = m.year ? '📅 ' + m.year : '';
+        document.getElementById('modalDirector').textContent = m.director ? '🎬 ' + m.director : '';
+
+        const poster = document.getElementById('modalPoster');
+        poster.innerHTML = m.posterUrl
+            ? `<img src="${escHtml(m.posterUrl)}" alt="" onerror="this.parentElement.innerHTML='🎬'"/>`
+            : '🎬';
+
+        const overviewEl = document.getElementById('modalOverview');
+        if (m.overview) {
+            overviewEl.textContent = m.overview;
+            overviewEl.style.display = 'block';
+        } else {
+            overviewEl.style.display = 'none';
+        }
+
+        document.getElementById('modalGenres').innerHTML =
+            (m.genres||[]).map(g => `<span class="genre-tag">${escHtml(g)}</span>`).join('');
+
+        const actors = m.actors || [];
+        const actorLabel = document.getElementById('actorLabel');
+        const actorList = document.getElementById('modalActors');
+        if (actors.length) {
+            actorLabel.style.display = 'block';
+            actorList.innerHTML = actors.map(a => `<span class="actor-chip">${escHtml(a)}</span>`).join('');
+        } else {
+            actorLabel.style.display = 'none';
+            actorList.innerHTML = '';
+        }
+
+        document.getElementById('movieModal').classList.add('open');
+    }
+
+    function closeModal(e) {
+        if (e.target === document.getElementById('movieModal')) closeModalDirect();
+    }
+    function closeModalDirect() {
+        document.getElementById('movieModal').classList.remove('open');
+    }
+
+    function deleteFromModal() {
+        if (!currentModalId) return;
+        if (!confirm('Видалити цей фільм?')) return;
+        fetch(`/api/movies/${currentModalId}`, { method: 'DELETE' })
+            .then(r => {
+                if (r.ok) {
+                    showToast('Фільм видалено', 'success');
+                    closeModalDirect();
+                    loadMovies();
+                } else {
+                    showToast('Не вдалося видалити', 'error');
+                }
+            });
+    }
+
+    // ── Add movie ────────────────────────────────────────────────
+    function addMovie() {
+        const title = document.getElementById('f-title').value.trim();
+        if (!title) { showToast('Введіть назву фільму', 'error'); return; }
+
+        const parseList = id => document.getElementById(id).value
+            .split(',').map(s => s.trim()).filter(Boolean);
+
+        const dto = {
+            title,
+            year: document.getElementById('f-year').value.trim() || null,
+            director: document.getElementById('f-director').value.trim() || null,
+            posterUrl: document.getElementById('f-poster').value.trim() || null,
+            overview: document.getElementById('f-overview').value.trim() || null,
+            genres: parseList('f-genres'),
+            actors: parseList('f-actors'),
+        };
+
+        fetch('/api/movies', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dto)
+        })
+        .then(r => r.json())
+        .then(() => {
+            showToast('Фільм додано до бази!', 'success');
+            clearForm();
+            showPanel('movies');
+        })
+        .catch(() => showToast('Помилка при збереженні', 'error'));
+    }
+
+    function clearForm() {
+        ['f-title','f-year','f-director','f-poster','f-overview','f-genres','f-actors']
+            .forEach(id => document.getElementById(id).value = '');
+    }
+
+    function escHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Init ─────────────────────────────────────────────────────
+    loadMovies();
+</script>
+</body>
+</html>
